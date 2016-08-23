@@ -1,11 +1,15 @@
+from collections import namedtuple
+
 
 class MMLParser(object):
+    Note = namedtuple("Note", ['frequency', 'length', 'volume'])
+
     def __init__(self, tempo=120, octave=4, length=4, volume=10):
-        self.tempo = tempo              # Tempo scale of 1 to 255
-        self.octave = octave            # Octaves from 0 to 7
-        self.reverse_octave = False     # Reverses operation of < and >
-        self.length = length            # From 1 to 9999
-        self.volume = volume            # Volume scale of 0 to 15
+        self.tempo = tempo  # Tempo scale of 1 to 255
+        self.octave = octave  # Octaves from 0 to 7
+        self.reverse_octave = False  # Reverses operation of < and >
+        self.length = length  # From 1 to 9999
+        self.volume = volume  # Volume scale of 0 to 15
         self.raw_mml_data = []
         self.mml_title = None
         self.mml_composer = None
@@ -16,7 +20,15 @@ class MMLParser(object):
                       "F": 349.23, "F#": 369.994,
                       "G": 392.00, "G#": 415.305,
                       "A": 440.00, "A#": 466.164,
-                      "B": 493.88, "R": 0.1}
+                      "B": 493.88, "R": 0}
+        self.octave_chart = {0: 0.06,
+                             1: 0.12,
+                             2: 0.25,
+                             3: 0.5,
+                             4: 1,
+                             5: 2,
+                             6: 4,
+                             7: 6}
         self.current_channel = None
         self.channel_a_queue = []
         self.channel_b_queue = []
@@ -30,18 +42,17 @@ class MMLParser(object):
                 # TODO: implement this.
                 pass
             elif line.startswith("#TITLE"):
-                self.mml_title = line[7:]
+                self.mml_title = line[6:].strip()
             elif line.startswith("#COMPOSER"):
-                self.mml_composer = line[10:]
+                self.mml_composer = line[9:].strip()
             elif line.startswith("#PROGRAMER"):
-                self.mml_programmer = line[11:]
+                self.mml_programmer = line[10:].strip()
             elif line.startswith("#PROGRAMMER"):
-                self.mml_programmer = line[11:]
+                self.mml_programmer = line[11:].strip()
             elif line.startswith("#OCTAVE-REV"):
                 self.reverse_octave = True
 
     def _set_channel(self, line):
-        # TODO: figure out a better way to set a default channel
         if line.startswith("#"):
             return
         elif line.startswith("A "):
@@ -60,22 +71,29 @@ class MMLParser(object):
     def load_file(self, file_name):
         with open(file_name) as f:
             for line in f.readlines():
-                self.raw_mml_data.append(line.strip())
+                self.raw_mml_data.append(line.strip().upper())
         self._parse_header()
 
-    def parse_line(self, line):
+    def load_string(self, string):
+        for line in string.splitlines():
+            self.raw_mml_data.append(line.strip().upper())
+        self._parse_header()
+
+    def _parse_line(self, line):
         self._set_channel(line)
         for character in line:
-            if character.upper() in self.notes.keys():
-                freq = self.notes[character.upper()]
+            if character == "<":
+                self.octave -= 1
+            elif character == ">":
+                self.octave += 1
+
+            elif character in self.notes.keys():
+                freq = self.notes[character] * self.octave_chart[self.octave]
                 leng = 60 / self.tempo
-                self.current_channel.append((leng, freq))
+                note = self.Note(frequency=freq, length=leng, volume=self.volume)
+                self.current_channel.append(note)
+        self.octave = 4
 
-        # parse line:
-        #   - set channel if specified, or skip.
-        #   For each character:
-        #       skip tempo and macro definitions
-        #       queue tuple on the proper channel, containing (note, tempo, octave, length, volume)
-        #
-
-        # [self._set_channel(line) for line in self.raw_mml_data]
+    def parse_mml(self):
+        for line in self.raw_mml_data:
+            self._parse_line(line)

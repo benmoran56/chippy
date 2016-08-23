@@ -1,3 +1,4 @@
-from .synthesizer import *
+from .synthesizer import Synthesizer
+from .mmlparser import MMLParser
 
-__all__ = ['Synthesizer']
+__all__ = ['Synthesizer', 'MMLParser']
