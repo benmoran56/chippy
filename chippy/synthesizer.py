@@ -1,3 +1,4 @@
+import array
 import struct
 import random
 import itertools
@@ -81,11 +82,10 @@ class Synthesizer:
     # The following function packs lists of numeric representation into raw bytes:
 
     def pack_pcm_data(self, wave_generator, length):
-        samples = []
-        [samples.append(int(self._amplitude_scale * next(wave_generator)))
-         for _ in range(int(self.framerate * length))]
-        # pack X number of shorts ("_h") into a raw byte string.
-        return struct.pack(str(len(samples)) + 'h', *samples)
+        # Return a bytestring containing the raw waveform data.
+        num_bytes = int(self.framerate * length)
+        return array.array('h', [int(self._amplitude_scale * next(wave_generator))
+                                 for _ in range(num_bytes)]).tobytes()
 
     # Return raw PCM data (no wave header):
 
