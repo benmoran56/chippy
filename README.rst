@@ -56,9 +56,11 @@ as appropriate.
 
 
     sine_wave = synth.sine_pcm(length=2, frequency=220, amplitude=0.8)
+
     saw_wave = synth.saw_riff(length=1, frequency=440)
 
     synth.save_wave(sine_wave, "wavefile.wav")
+
     synth.save_raw_pcm(saw_wave, "sawpcm.raw")
 
 
@@ -68,6 +70,7 @@ The Square/Pulse wave has a duty cycle parameter, which is set as a percentage o
 
 
     fm_pcm = synth.fm_riff(length=2, carrier=440, modulator=122, amplitude=0.9, mod_amplitude=1.0)
+
     square_pcm = synth.pulse_riff(length=3, frequency=183, duty_cycle=25)
 
 
