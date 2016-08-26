@@ -40,22 +40,42 @@ want to make a byte string of raw PCM data, you can use the **<waveform>_pcm(len
 There is another set of methods for producing standard RIFF format wave data, ready to play:
 **<waveform>_riff(length=1)**. You can save this data to disk with the following methods:
 **save_wave(pcm_data, filename)** and **save_raw_pcm(pcm_data, filename)**. Here is a quick
-example of usage:
+example of usage below.
+
+First, import chippy and create an instance of *chippy.Synthesizer*:
 
 
     import chippy
 
     synth = chippy.Synthesizer(framerate=44100)
 
-    # Create a raw PCM Sine wave:
-    sine_wave = synth.Sine(length=2, frequency=220)
-    # Save it to disk with a RIFF wave header:
+
+Create a some waveforms, and then save them to disk. Whether you have raw pcm, or a RIFF wave,
+the *synth.save_wave* and *synth.save_raw_pcm* methods will add or remove the RIFF wave header
+as appropriate.
+
+
+    sine_wave = synth.sine_pcm(length=2, frequency=220, amplitude=0.8)
+    saw_wave = synth.saw_riff(length=1, frequency=440)
+
     synth.save_wave(sine_wave, "wavefile.wav")
-
-    # Make an FM waveform with RIFF header:
-    fm_wave = synth.FM(carrier=440, modulator=220)
+    synth.save_raw_pcm(saw_wave, "sawpcm.raw")
 
 
-MORE DOCUMENTATION TO COME!
+The Square and FM waveforms have a few more options. The FM waveform has carrier and modulator
+values instead of just frequency, as you would expect. You can also adjust the modulator amplitude.
+The Square/Pulse wave has a duty cycle parameter, which is set as a percentage of 0-100:
 
 
+    fm_pcm = synth.fm_riff(length=2, carrier=440, modulator=122, amplitude=0.9, mod_amplitude=1.0)
+    square_pcm = synth.pulse_riff(length=3, frequency=183, duty_cycle=25)
+
+
+In addition to the methods above which return bytestrings of wave data, there are also generators
+available that will return infinite streams of data between -32767 and 32767, that represent the
+waveform data at 16-bit resolution. I'll try to add more documentation at some point that covers
+this, but if you have a use for it you probably already know what to do. Just make an instance of
+the generator and pull from it:
+
+
+    sine_generator = synth.sine_generator(frequency=220, amplitude=0.3)
