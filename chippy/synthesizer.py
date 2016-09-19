@@ -2,6 +2,7 @@ import array
 import struct
 import random
 import itertools
+
 from math import *
 
 
@@ -26,6 +27,7 @@ class Synthesizer:
     #     lookup_table = [ring_buffer[0] * amplitude]
 
     def fm_generator(self, carrier=440, modulator=440, amplitude=0.5, mod_amplitude=1.0):
+        # TODO: refactor to use sine generators. Then, allow alternate generators as inputs.
         period = int(self.framerate / carrier)
         amplitude = 0 if amplitude < 0 else 1 if amplitude > 1 else amplitude
         car_step = 2 * pi * carrier
@@ -78,6 +80,32 @@ class Synthesizer:
         :return: A new generator with the summed value of the input generators.
         """
         return (sum(samples) / len(samples) for samples in zip(*generators))
+
+    def adsr_envelope(self, attack, decay, release, length, sustain_level=0.5):
+        sustain = length - (attack + decay + release)   # sustain is what's left.
+        byte_scale = self.framerate / 1000              # scale from ms to seconds.
+        attack_bytes = int(byte_scale * attack)
+        decay_bytes = int(byte_scale * decay)
+        decay_step = (1 - sustain_level) / decay_bytes
+        sustain_bytes = int(byte_scale * sustain)
+        release_bytes = int(byte_scale * release)
+        release_step = sustain_level / release_bytes
+
+        envelope = []
+        # Attack:
+        for i in range(1, attack_bytes + 1):
+            envelope.append(i / attack_bytes)
+        # Decay:
+        for i in range(1, decay_bytes + 1):
+            envelope.append(1 - (i * decay_step))
+        # Sustain:
+        for i in range(1, sustain_bytes + 1):
+            envelope.append(sustain_level)
+        # Release:
+        for i in range(1, release_bytes + 1):
+            envelope.append(sustain_level - (i * release_step))
+
+        return envelope
 
     # The following function packs lists of numeric representation into raw bytes:
 
