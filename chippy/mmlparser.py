@@ -2,6 +2,7 @@ from collections import namedtuple
 
 
 class MMLParser(object):
+
     Note = namedtuple("Note", ['frequency', 'length', 'volume'])
 
     def __init__(self, tempo=120, octave=4, length=4, volume=10):
@@ -35,6 +36,18 @@ class MMLParser(object):
         self.channel_c_queue = []
         self.channel_d_queue = []
         self.channel_e_queue = []
+        self.macros = {}
+
+    def load_file(self, file_name):
+        with open(file_name) as f:
+            for line in f.readlines():
+                self.raw_mml_data.append(line.strip().upper())
+        self._parse_header()
+
+    def load_string(self, string):
+        for line in string.splitlines():
+            self.raw_mml_data.append(line.strip().upper())
+        self._parse_header()
 
     def _parse_header(self):
         for line in self.raw_mml_data:
@@ -67,17 +80,6 @@ class MMLParser(object):
             self.current_channel = self.channel_e_queue
         else:
             self.current_channel = self.channel_a_queue
-
-    def load_file(self, file_name):
-        with open(file_name) as f:
-            for line in f.readlines():
-                self.raw_mml_data.append(line.strip().upper())
-        self._parse_header()
-
-    def load_string(self, string):
-        for line in string.splitlines():
-            self.raw_mml_data.append(line.strip().upper())
-        self._parse_header()
 
     def _parse_line(self, line):
         self._set_channel(line)

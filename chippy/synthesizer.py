@@ -7,35 +7,40 @@ from math import *
 
 
 class Synthesizer:
-    def __init__(self, framerate=44100):
+    def __init__(self, framerate=44100, amplitude=1.0):
         self.framerate = framerate
+        self.amplitude = amplitude
         self._amplitude_scale = 32767   # Default for 16-bit audio.
         self._channels = 1              # Currently only one channel is supported
         self._bits = 16
-
-    # Generators for various waveforms:
 
     # def digitar_generator(self, frequency=440, amplitude=0.5, decay=0.996):
     #     period = int(self.framerate / frequency)
     #     amplitude = 0 if amplitude < 0 else 1 if amplitude > 1 else amplitude
     #     ring_buffer = [random.uniform(-1, 1) for _ in range(period)]
-    #
     #     for i in range(period):
     #         ring_buffer.append(0.996 * (ring_buffer[0] + ring_buffer[1]) / 2)
     #         ring_buffer.pop(0)
-    #
     #     lookup_table = [ring_buffer[0] * amplitude]
 
-    def fm_generator(self, carrier=440, modulator=440, amplitude=0.5, mod_amplitude=1.0):
+    def fm_generator(self, carrier=440, modulator=440, mod_amplitude=1.0):
         # TODO: refactor to use sine generators. Then, allow alternate generators as inputs.
         period = int(self.framerate / carrier)
-        amplitude = 0 if amplitude < 0 else 1 if amplitude > 1 else amplitude
+        amplitude = self.amplitude
         car_step = 2 * pi * carrier
         mod_step = 2 * pi * modulator
         lookup_table = [(sin(car_step * (i / self.framerate) +
                              mod_amplitude * sin(mod_step * (i / self.framerate)))
                          * amplitude) for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
+
+    def fm_compositor(self, carrier, modulator, mod_amplitude=1.0):
+        # TODO: finish this. It doesn't yet produce correct waves.
+        amplitude = self.amplitude
+        step = 2 * pi
+        # sin((2 * pi * carrier) + sin(2 * pi * modulator))
+        while True:
+            yield sin(next(carrier)) + mod_amplitude * sin(next(modulator)) * amplitude
 
     def sine_generator(self, frequency=440.0, amplitude=0.5):
         period = int(self.framerate / frequency)
@@ -115,7 +120,18 @@ class Synthesizer:
         return array.array('h', [int(self._amplitude_scale * next(wave_generator))
                                  for _ in range(num_bytes)]).tobytes()
 
+    def wave_data(self, wave_generator, length, riff_header=True):
+        num_bytes = int(self.framerate * length)
+        data = array.array('h', [int(self._amplitude_scale * next(wave_generator))
+                           for _ in range(num_bytes)]).tobytes()
+        if riff_header:
+            return self.add_wave_header(data)
+        else:
+            return data
+
+    #######################################
     # Return raw PCM data (no wave header):
+    #######################################
 
     def fm_pcm(self, length=1.0, **kwargs):
         fm_gen = self.fm_generator(**kwargs)
@@ -163,27 +179,9 @@ class Synthesizer:
                              len(pcm_data))
         return header + pcm_data
 
-    # Return RIFF wave data
-
-    def fm_riff(self, length=1.0, **kwargs):
-        return self.add_wave_header(self.fm_pcm(length, **kwargs))
-
-    def sine_riff(self, length=1.0, **kwargs):
-        return self.add_wave_header(self.sine_pcm(length, **kwargs))
-
-    def triangle_riff(self, length=1.0, **kwargs):
-        return self.add_wave_header(self.triangle_pcm(length, **kwargs))
-
-    def saw_riff(self, length=1.0, **kwargs):
-        return self.add_wave_header(self.saw_pcm(length, **kwargs))
-
-    def pulse_riff(self, length=1.0, **kwargs):
-        return self.add_wave_header(self.pulse_pcm(length, **kwargs))
-
-    def noise_riff(self, length=1.0, **kwargs):
-        return self.add_wave_header(self.noise_pcm(length, **kwargs))
-
+    ########################
     # Save wave data to disk
+    ########################
 
     @staticmethod
     def save_raw_pcm(pcm_data, file_name="rawpcm.wav"):
