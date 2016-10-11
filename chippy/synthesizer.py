@@ -116,11 +116,14 @@ class Synthesizer:
 
     # The following function packs lists of numeric representation into raw bytes:
 
-    def pack_pcm_data(self, wave_generator, length):
+    def pack_pcm_data(self, wave_generator, length, fast_int=int):
         # Return a bytestring containing the raw waveform data.
+        fast_amplitude_scale = self._amplitude_scale
+
         num_bytes = int(self.framerate * length)
-        return array.array('h', [int(self._amplitude_scale * next(wave_generator))
-                                 for _ in range(num_bytes)]).tobytes()
+        wave_slices = itertools.islice(wave_generator, num_bytes)
+        waves = (fast_int(fast_amplitude_scale * elem) for elem in wave_slices)
+        return array.array('h', waves).tobytes()
 
     def wave_data(self, wave_generator, length, riff_header=True):
         num_bytes = int(self.framerate * length)
