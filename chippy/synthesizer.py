@@ -70,7 +70,8 @@ class Synthesizer:
         period = int(self.framerate / frequency)
         amplitude = self.amplitude
         duty_cycle = int(duty_cycle * period / 100)
-        lookup_table = [amplitude * (int(i < duty_cycle) * 2 - 1) for i in range(period)]
+        lookup_table = [amplitude * (int(i < duty_cycle) * 2 - 1)
+                        for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def noise_generator(self, frequency=440.0):
