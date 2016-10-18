@@ -54,8 +54,9 @@ class Synthesizer:
         period = int(self.framerate / frequency)
         amplitude = self.amplitude
         half_period = period / 2
+        # TODO: fix this really hacky lookup table. The +0.02 is bad. Fix it.
         lookup_table = [(amplitude / half_period) *
-                        (half_period - abs(i % period - half_period) * 2 - 1)
+                        (half_period - abs(i % period - half_period) * 2 - 1) + 0.02
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
