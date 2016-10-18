@@ -82,13 +82,14 @@ class Synthesizer:
         return (sum(samples) / len(samples) for samples in zip(*generators))
 
     def adsr_envelope(self, attack, decay, release, length, sustain_level=0.5):
+        assert length >= attack + decay + release
         sustain = length - (attack + decay + release)   # sustain is what's left.
-        byte_scale = self.framerate / 1000              # scale from ms to seconds.
-        attack_bytes = int(byte_scale * attack)
-        decay_bytes = int(byte_scale * decay)
+        framerate = self.framerate
+        attack_bytes = int(framerate * attack)
+        decay_bytes = int(framerate * decay)
         decay_step = (1 - sustain_level) / decay_bytes
-        sustain_bytes = int(byte_scale * sustain)
-        release_bytes = int(byte_scale * release)
+        sustain_bytes = int(framerate * sustain)
+        release_bytes = int(framerate * release)
         release_step = sustain_level / release_bytes
 
         envelope = []
