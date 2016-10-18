@@ -87,9 +87,10 @@ class Synthesizer:
         framerate = self.framerate
         attack_bytes = int(framerate * attack)
         decay_bytes = int(framerate * decay)
-        decay_step = (1 - sustain_level) / decay_bytes
         sustain_bytes = int(framerate * sustain)
         release_bytes = int(framerate * release)
+
+        decay_step = (1 - sustain_level) / decay_bytes
         release_step = sustain_level / release_bytes
 
         envelope = []
@@ -125,6 +126,22 @@ class Synthesizer:
         amplitude = self.amplitude
         data = array.array('h', [int(self._amplitude_scale * next(wave_generator) * amplitude)
                            for _ in range(num_bytes)]).tobytes()
+        if riff_header:
+            return self.add_wave_header(data)
+        else:
+            return data
+
+    def envelope_test(self, wave_generator, length, riff_header=True):
+        num_bytes = int(self.framerate * length)
+
+        attack = length / 8
+        decay = length / 8
+        release = attack
+        adsr = self.adsr_envelope(attack, decay, release, length)
+        adsr_generator = itertools.islice(adsr, len(adsr))
+
+        data = array.array('h', [int(self._amplitude_scale * next(wave_generator) * next(adsr_generator))
+                                 for _ in range(num_bytes)]).tobytes()
         if riff_header:
             return self.add_wave_header(data)
         else:
