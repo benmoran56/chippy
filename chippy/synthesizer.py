@@ -25,60 +25,51 @@ class Synthesizer:
 
     def fm_generator(self, carrier=440, modulator=440, mod_amplitude=1.0):
         period = int(self.framerate / carrier)
-        amplitude = self.amplitude
         car_step = 2 * pi * carrier
         mod_step = 2 * pi * modulator
         lookup_table = [(sin(car_step * (i / self.framerate) +
-                             mod_amplitude * sin(mod_step * (i / self.framerate)))
-                         * amplitude) for i in range(period)]
+                             mod_amplitude * sin(mod_step * i / self.framerate))) for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def fm_compositor(self, modulator, carrier_freq=440, mod_amplitude=1.0):
         period = int(self.framerate)
-        amplitude = self.amplitude
         step = 2 * pi * carrier_freq
 
-        lookup_table = [(sin(step * (i / self.framerate) + mod_amplitude * next(modulator)) * amplitude)
+        lookup_table = [(sin(step * (i / self.framerate) + mod_amplitude * next(modulator)))
                         for i in range(period)]
 
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def sine_generator(self, frequency=440.0):
         period = int(self.framerate / frequency)
-        amplitude = self.amplitude
-        lookup_table = [amplitude * sin(2 * pi * frequency * (i % period / self.framerate))
+        lookup_table = [sin(2 * pi * frequency * (i % period / self.framerate))
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def triangle_generator(self, frequency=440.0):
         period = int(self.framerate / frequency)
-        amplitude = self.amplitude
         half_period = period / 2
         # TODO: fix this really hacky lookup table. The +0.02 is bad. Fix it.
-        lookup_table = [(amplitude / half_period) *
-                        (half_period - abs(i % period - half_period) * 2 - 1) + 0.02
+        lookup_table = [1 / half_period * (half_period - abs(i % period - half_period) * 2 - 1) + 0.02
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def sawtooth_generator(self, frequency=440.0):
         period = int(self.framerate / frequency)
-        amplitude = self.amplitude
-        lookup_table = [amplitude * (frequency * (i % period / self.framerate) * 2 - 1)
+        lookup_table = [(frequency * (i % period / self.framerate) * 2 - 1)
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def pulse_generator(self, frequency=440.0, duty_cycle=50):
         period = int(self.framerate / frequency)
-        amplitude = self.amplitude
         duty_cycle = int(duty_cycle * period / 100)
-        lookup_table = [amplitude * (int(i < duty_cycle) * 2 - 1)
+        lookup_table = [(int(i < duty_cycle) * 2 - 1)
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def noise_generator(self, frequency=440.0):
         period = int(self.framerate / frequency)
-        amplitude = self.amplitude
-        lookup_table = [amplitude * (random.uniform(-1, 1)) for _ in range(period)]
+        lookup_table = [(random.uniform(-1, 1)) for _ in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
     @staticmethod
@@ -121,15 +112,17 @@ class Synthesizer:
     def pack_pcm_data(self, wave_generator, length):
         # Return a bytestring containing the raw waveform data.
         amplitude_scale = self._amplitude_scale
+        amplitude = self.amplitude
         fast_int = int
         num_bytes = fast_int(self.framerate * length)
         wave_slices = itertools.islice(wave_generator, num_bytes)
-        waves = (fast_int(amplitude_scale * elem) for elem in wave_slices)
+        waves = (fast_int(amplitude_scale * elem * amplitude) for elem in wave_slices)
         return array.array('h', waves).tobytes()
 
     def wave_data(self, wave_generator, length, riff_header=True):
         num_bytes = int(self.framerate * length)
-        data = array.array('h', [int(self._amplitude_scale * next(wave_generator))
+        amplitude = self.amplitude
+        data = array.array('h', [int(self._amplitude_scale * next(wave_generator) * amplitude)
                            for _ in range(num_bytes)]).tobytes()
         if riff_header:
             return self.add_wave_header(data)
