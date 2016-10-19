@@ -14,28 +14,20 @@ class Synthesizer:
         self._channels = 1              # Currently only one channel is supported
         self._bits = 16
 
-    # def digitar_generator(self, frequency=440, amplitude=0.5, decay=0.996):
-    #     period = int(self.framerate / frequency)
-    #     amplitude = 0 if amplitude < 0 else 1 if amplitude > 1 else amplitude
-    #     ring_buffer = [random.uniform(-1, 1) for _ in range(period)]
-    #     for i in range(period):
-    #         ring_buffer.append(0.996 * (ring_buffer[0] + ring_buffer[1]) / 2)
-    #         ring_buffer.pop(0)
-    #     lookup_table = [ring_buffer[0] * amplitude]
-
     def fm_generator(self, carrier=440, modulator=440, mod_amplitude=1.0):
         period = int(self.framerate / carrier)
         car_step = 2 * pi * carrier
         mod_step = 2 * pi * modulator
         lookup_table = [(sin(car_step * (i / self.framerate) +
-                             mod_amplitude * sin(mod_step * i / self.framerate))) for i in range(period)]
+                             mod_amplitude * sin(mod_step * i / self.framerate)))
+                        for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
-    def fm_compositor(self, modulator, carrier_freq=440, mod_amplitude=1.0):
+    def fm_compositor(self, modulator_gen, carrier_freq=440, mod_amplitude=1.0):
         period = int(self.framerate)
         step = 2 * pi * carrier_freq
 
-        lookup_table = [(sin(step * (i / self.framerate) + mod_amplitude * next(modulator)))
+        lookup_table = [(sin(step * (i / self.framerate) + mod_amplitude * next(modulator_gen)))
                         for i in range(period)]
 
         return (lookup_table[i % period] for i in itertools.count(0))
@@ -120,16 +112,6 @@ class Synthesizer:
         wave_slices = itertools.islice(wave_generator, num_bytes)
         waves = (fast_int(amplitude_scale * elem * amplitude) for elem in wave_slices)
         return array.array('h', waves).tobytes()
-
-    def wave_data(self, wave_generator, length, riff_header=True):
-        num_bytes = int(self.framerate * length)
-        amplitude = self.amplitude
-        data = array.array('h', [int(self._amplitude_scale * next(wave_generator) * amplitude)
-                           for _ in range(num_bytes)]).tobytes()
-        if riff_header:
-            return self.add_wave_header(data)
-        else:
-            return data
 
     def envelope_test(self, wave_generator, length, riff_header=True):
         num_bytes = int(self.framerate * length)
