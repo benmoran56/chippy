@@ -23,15 +23,6 @@ class Synthesizer:
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
-    def fm_compositor(self, modulator_gen, carrier_freq=440, mod_amplitude=1.0):
-        period = int(self.framerate)
-        step = 2 * pi * carrier_freq
-
-        lookup_table = [(sin(step * (i / self.framerate) + mod_amplitude * next(modulator_gen)))
-                        for i in range(period)]
-
-        return (lookup_table[i % period] for i in itertools.count(0))
-
     def sine_generator(self, frequency=440.0):
         period = int(self.framerate / frequency)
         lookup_table = [sin(2 * pi * frequency * (i % period / self.framerate))
