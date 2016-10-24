@@ -1,4 +1,3 @@
-import array
 import struct
 import random
 import itertools
@@ -50,7 +49,7 @@ class Synthesizer:
                         for i in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
 
-    def noise_generator(self, frequency=440.0):
+    def noise_generator(self, frequency=10.0):
         period = int(self.framerate / frequency)
         lookup_table = [(random.uniform(-1, 1)) for _ in range(period)]
         return (lookup_table[i % period] for i in itertools.count(0))
@@ -64,7 +63,17 @@ class Synthesizer:
         """
         return (sum(samples) / len(samples) for samples in zip(*generators))
 
-    def adsr_envelope(self, attack, decay, release, length, sustain_level=0.5):
+    def adsr_envelope_iterator(self, attack, decay, release, length, sustain_level=0.5):
+        """An Attack, decay, sustain, release envelope.
+
+        :param attack: The attack rate in seconds
+        :param decay: The decay rate in seconds
+        :param release: The release rate in seconds
+        :param length: The total length in seconds. Must be larger than
+        the attack, decay, and release rates combined.
+        :param sustain_level: The sustain amplitude, on a scale from 0.0 to 1.0.
+        :return: A finite iterator for the length provided.
+        """
         assert length >= attack + decay + release
         framerate = int(self.framerate)
         total_bytes = int(self.framerate * length)
@@ -72,6 +81,7 @@ class Synthesizer:
         decay_bytes = int(framerate * decay)
         release_bytes = int(framerate * release)
         sustain_bytes = total_bytes - attack_bytes - decay_bytes - release_bytes
+
         decay_step = (1 - sustain_level) / decay_bytes
         release_step = sustain_level / release_bytes
 
@@ -89,7 +99,7 @@ class Synthesizer:
         for i in range(1, release_bytes + 1):
             envelope.append(sustain_level - (i * release_step))
 
-        return envelope
+        return itertools.islice(envelope, total_bytes)
 
     # The following function packs lists of numeric representation into raw bytes:
 
@@ -103,15 +113,18 @@ class Synthesizer:
         data_format = "<{}h".format(num_bytes)
         return struct.pack(data_format, *waves)
 
-    def envelope_test(self, wave_generator, adsr_envelope, length, riff_header=True):
+    def pack_enveloped_pcm(self, wave_generator, adsr_iterator, length, riff_header=True):
+        amplitude_scale = self._amplitude_scale
+        fast_int = int
         num_bytes = int(self.framerate * length)
-        adsr_generator = itertools.islice(adsr_envelope, len(adsr_envelope))
-        data = array.array('h', [int(self._amplitude_scale * next(wave_generator) * next(adsr_generator))
-                                 for _ in range(num_bytes)]).tobytes()
+        waves = [fast_int(amplitude_scale * next(wave_generator) * next(adsr_iterator))
+                 for _ in range(num_bytes)]
+        data_format = "<{}h".format(num_bytes)
+
         if riff_header:
-            return self.add_wave_header(data)
+            return self.add_wave_header(struct.pack(data_format, *waves))
         else:
-            return data
+            return struct.pack(data_format, *waves)
 
     #######################################
     # Return raw PCM data (no wave header):
@@ -121,25 +134,55 @@ class Synthesizer:
         fm_gen = self.fm_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=fm_gen, length=length)
 
+    def fm_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        asdr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        fm_gen = self.fm_generator(**kwargs)
+        return self.pack_enveloped_pcm(wave_generator=fm_gen, adsr_iterator=asdr_iterator, length=length)
+
     def sine_pcm(self, length=1.0, **kwargs):
         wave_gen = self.sine_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
+
+    def sine_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        asdr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        sine_gen = self.sine_generator(**kwargs)
+        return self.pack_enveloped_pcm(wave_generator=sine_gen, adsr_iterator=asdr_iterator, length=length)
 
     def triangle_pcm(self, length=1.0, **kwargs):
         wave_gen = self.triangle_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
+    def triangle_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        asdr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        triangle_gen = self.triangle_generator(**kwargs)
+        return self.pack_enveloped_pcm(wave_generator=triangle_gen, adsr_iterator=asdr_iterator, length=length)
+
     def saw_pcm(self, length=1.0, **kwargs):
         wave_gen = self.sawtooth_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
+
+    def saw_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        asdr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        saw_gen = self.sawtooth_generator(**kwargs)
+        return self.pack_enveloped_pcm(wave_generator=saw_gen, adsr_iterator=asdr_iterator, length=length)
 
     def pulse_pcm(self, length=1.0, **kwargs):
         wave_gen = self.pulse_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
+    def pulse_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        asdr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        pulse_gen = self.pulse_generator(**kwargs)
+        return self.pack_enveloped_pcm(wave_generator=pulse_gen, adsr_iterator=asdr_iterator, length=length)
+
     def noise_pcm(self, length=1.0, **kwargs):
         wave_gen = self.noise_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
+
+    def noise_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        asdr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        noise_gen = self.noise_generator(**kwargs)
+        return self.pack_enveloped_pcm(wave_generator=noise_gen, adsr_iterator=asdr_iterator, length=length)
 
     def add_wave_header(self, pcm_data):
         """Add a RIFF standard Wave header to raw PCM data
