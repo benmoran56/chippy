@@ -66,13 +66,12 @@ class Synthesizer:
 
     def adsr_envelope(self, attack, decay, release, length, sustain_level=0.5):
         assert length >= attack + decay + release
-        sustain = length - (attack + decay + release)   # sustain is what's left.
-        framerate = self.framerate
+        framerate = int(self.framerate)
+        total_bytes = int(self.framerate * length)
         attack_bytes = int(framerate * attack)
         decay_bytes = int(framerate * decay)
-        sustain_bytes = int(framerate * sustain)
         release_bytes = int(framerate * release)
-
+        sustain_bytes = total_bytes - attack_bytes - decay_bytes - release_bytes
         decay_step = (1 - sustain_level) / decay_bytes
         release_step = sustain_level / release_bytes
 
@@ -96,23 +95,17 @@ class Synthesizer:
 
     def pack_pcm_data(self, wave_generator, length):
         # Return a bytestring containing the raw waveform data.
-        amplitude_scale = self._amplitude_scale
-        amplitude = self.amplitude
+        amplitude_scale = self._amplitude_scale * self.amplitude
         fast_int = int
         num_bytes = fast_int(self.framerate * length)
         wave_slices = itertools.islice(wave_generator, num_bytes)
-        waves = (fast_int(amplitude_scale * elem * amplitude) for elem in wave_slices)
-        return array.array('h', waves).tobytes()
+        waves = [fast_int(amplitude_scale * elem) for elem in wave_slices]
+        data_format = "<{}h".format(num_bytes)
+        return struct.pack(data_format, *waves)
 
-    def envelope_test(self, wave_generator, length, riff_header=True):
+    def envelope_test(self, wave_generator, adsr_envelope, length, riff_header=True):
         num_bytes = int(self.framerate * length)
-
-        attack = length / 8
-        decay = length / 8
-        release = attack
-        adsr = self.adsr_envelope(attack, decay, release, length)
-        adsr_generator = itertools.islice(adsr, len(adsr))
-
+        adsr_generator = itertools.islice(adsr_envelope, len(adsr_envelope))
         data = array.array('h', [int(self._amplitude_scale * next(wave_generator) * next(adsr_generator))
                                  for _ in range(num_bytes)]).tobytes()
         if riff_header:
