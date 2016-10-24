@@ -75,10 +75,12 @@ The Square/Pulse wave has a duty cycle parameter, which is set as a percentage o
 
 
 In addition to the methods above which return bytestrings of wave data, there are also generators
-available that will return infinite streams of data between -32767 and 32767, that represent the
-waveform data at 16-bit resolution. I'll try to add more documentation at some point that covers
+available that will return infinite streams of waveform data on a scale of -1.0 and 1.0.
+I'll try to add more documentation at some point that covers
 this, but if you have a use for it you probably already know what to do. Just make an instance of
 the generator and pull from it:
 
 
     sine_generator = synth.sine_generator(frequency=220, amplitude=0.3)
+    next(sine_generator)
+    ...
