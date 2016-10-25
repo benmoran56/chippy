@@ -101,7 +101,9 @@ class Synthesizer:
 
         return itertools.islice(envelope, total_bytes)
 
-    # The following function packs lists of numeric representation into raw bytes:
+    ##############################################################################
+    # The following functions pack lists of numeric representation into raw bytes:
+    ##############################################################################
 
     def pack_pcm_data(self, wave_generator, length):
         # Return a bytestring containing the raw waveform data.
