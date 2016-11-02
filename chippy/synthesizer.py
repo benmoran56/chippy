@@ -101,17 +101,22 @@ class Synthesizer:
 
         return itertools.islice(envelope, total_bytes)
 
+    def flat_envelope_iterator(self, amplitude):
+        return itertools.repeat(amplitude * self._amplitude_scale)
+
     ##############################################################################
     # The following functions pack lists of numeric representation into raw bytes:
     ##############################################################################
 
-    def pack_pcm_data(self, wave_generator, length):
+    def pack_pcm_data(self, wave_generator, length, envelope=None):
         # Return a bytestring containing the raw waveform data.
-        amplitude_scale = self._amplitude_scale * self.amplitude
         fast_int = int
         num_bytes = fast_int(self.framerate * length)
+        if not envelope:
+            envelope = self.flat_envelope_iterator(self.amplitude)
+        # TODO: fix the adsr amplitude so it will work
         wave_slices = itertools.islice(wave_generator, num_bytes)
-        waves = [fast_int(amplitude_scale * elem) for elem in wave_slices]
+        waves = [fast_int(next(envelope) * elem) for elem in wave_slices]
         data_format = "<{}h".format(num_bytes)
         return struct.pack(data_format, *waves)
 
