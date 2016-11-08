@@ -66,9 +66,9 @@ class Synthesizer:
     def adsr_envelope(self, attack, decay, release, length, sustain_level=0.5):
         """An Attack, decay, sustain, release envelope.
 
-        :param attack: The attack rate in seconds
-        :param decay: The decay rate in seconds
-        :param release: The release rate in seconds
+        :param attack: The attack rate in seconds.
+        :param decay: The decay rate in seconds.
+        :param release: The release rate in seconds.
         :param length: The total length in seconds. Must be larger than
         the attack, decay, and release rates combined.
         :param sustain_level: The sustain amplitude, on a scale from 0.0 to 1.0.
@@ -97,6 +97,17 @@ class Synthesizer:
         # Release:
         for i in range(1, release_bytes + 1):
             yield sustain_level - (i * release_step)
+
+    def linear_decay_envelope(self, length, peak=1.0):
+        """A simple linear decay envelope.
+
+        :param length: The total length in seconds.
+        :param peak: The initial peak amplitude, on a scale of 0.0 to 1.0.
+        :return: A finite iterator for the length provided.
+        """
+        total_bytes = int(self.framerate * length)
+        for i in range(total_bytes):
+            yield (total_bytes - i) / total_bytes * peak
 
     @staticmethod
     def flat_envelope_iterator(amplitude):
