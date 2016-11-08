@@ -55,6 +55,10 @@ class Synthesizer:
         return (lookup_table[i % period] for i in itertools.count(0))
 
     @staticmethod
+    def silence_generator():
+        return itertools.repeat(0)
+
+    @staticmethod
     def composite_generator(*generators):
         """Creates a composited generator of all input generators.
 
@@ -110,7 +114,12 @@ class Synthesizer:
             yield (total_bytes - i) / total_bytes * peak
 
     @staticmethod
-    def flat_envelope_iterator(amplitude):
+    def flat_envelope(amplitude):
+        """A flat envelope, which has essentially no effect.
+
+        :param amplitude: The flat amplitude to return.
+        :return: An infinite repeat of the amplitude provided.
+        """
         return itertools.repeat(amplitude)
 
     ##############################################################################
@@ -123,7 +132,7 @@ class Synthesizer:
         amplitude_scale = self._amplitude_scale
         num_bytes = fast_int(self.framerate * length)
         if not envelope:
-            envelope = self.flat_envelope_iterator(self.amplitude)
+            envelope = self.flat_envelope(self.amplitude)
         # TODO: rewrite the envelope multiplication so that it's efficent.
         wave_slices = itertools.islice(wave_generator, num_bytes)
         waves = [fast_int(next(envelope) * elem * amplitude_scale) for elem in wave_slices]
