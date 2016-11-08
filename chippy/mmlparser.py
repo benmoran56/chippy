@@ -5,31 +5,34 @@ class MMLParser(object):
 
     Note = namedtuple("Note", ['frequency', 'length', 'volume'])
 
+    notes = {"C": 261.63, "C#": 277.183,
+             "D": 293.66, "D#": 311.127,
+             "E": 329.63,
+             "F": 349.23, "F#": 369.994,
+             "G": 392.00, "G#": 415.305,
+             "A": 440.00, "A#": 466.164,
+             "B": 493.88, "R": 0}
+
+    octave_chart = {0: 0.06,
+                    1: 0.12,
+                    2: 0.25,
+                    3: 0.5,
+                    4: 1,
+                    5: 2,
+                    6: 4,
+                    7: 8}
+
     def __init__(self, tempo=120, octave=4, length=4, volume=10):
-        self.tempo = tempo  # Tempo scale of 1 to 255
-        self.octave = octave  # Octaves from 0 to 7
-        self.reverse_octave = False  # Reverses operation of < and >
-        self.length = length  # From 1 to 9999
-        self.volume = volume  # Volume scale of 0 to 15
+        self.tempo = tempo              # Tempo scale of 1 to 255
+        self.octave = octave            # Octaves from 0 to 7
+        self.reverse_octave = False     # Reverses operation of < and >
+        self.length = length            # From 1 to 9999
+        self.volume = volume            # Volume scale of 0 to 15
         self.raw_mml_data = []
         self.mml_title = None
         self.mml_composer = None
         self.mml_programmer = None
-        self.notes = {"C": 261.63, "C#": 277.183,
-                      "D": 293.66, "D#": 311.127,
-                      "E": 329.63,
-                      "F": 349.23, "F#": 369.994,
-                      "G": 392.00, "G#": 415.305,
-                      "A": 440.00, "A#": 466.164,
-                      "B": 493.88, "R": 0}
-        self.octave_chart = {0: 0.06,
-                             1: 0.12,
-                             2: 0.25,
-                             3: 0.5,
-                             4: 1,
-                             5: 2,
-                             6: 4,
-                             7: 6}
+
         self.current_channel = None
         self.channel_a_queue = []
         self.channel_b_queue = []
@@ -38,13 +41,15 @@ class MMLParser(object):
         self.channel_e_queue = []
         self.macros = {}
 
-    def load_file(self, file_name):
+    def load_from_file(self, file_name):
+        """Load a text file containing valid MML."""
         with open(file_name) as f:
             for line in f.readlines():
                 self.raw_mml_data.append(line.strip().upper())
         self._parse_header()
 
-    def load_string(self, string):
+    def load_from_string(self, string):
+        """Load a string containing MML data."""
         for line in string.splitlines():
             self.raw_mml_data.append(line.strip().upper())
         self._parse_header()
