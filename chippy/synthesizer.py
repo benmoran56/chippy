@@ -63,7 +63,7 @@ class Synthesizer:
         """
         return (sum(samples) / len(samples) for samples in zip(*generators))
 
-    def adsr_envelope_iterator(self, attack, decay, release, length, sustain_level=0.5):
+    def adsr_envelope(self, attack, decay, release, length, sustain_level=0.5):
         """An Attack, decay, sustain, release envelope.
 
         :param attack: The attack rate in seconds
@@ -76,7 +76,7 @@ class Synthesizer:
         """
         assert length >= attack + decay + release
         framerate = int(self.framerate)
-        total_bytes = int(self.framerate * length)
+        total_bytes = int(framerate * length)
         attack_bytes = int(framerate * attack)
         decay_bytes = int(framerate * decay)
         release_bytes = int(framerate * release)
@@ -85,21 +85,18 @@ class Synthesizer:
         decay_step = (1 - sustain_level) / decay_bytes
         release_step = sustain_level / release_bytes
 
-        envelope = []
         # Attack:
         for i in range(1, attack_bytes + 1):
-            envelope.append(i / attack_bytes)
+            yield i / attack_bytes
         # Decay:
         for i in range(1, decay_bytes + 1):
-            envelope.append(1 - (i * decay_step))
+            yield 1 - (i * decay_step)
         # Sustain:
         for i in range(1, sustain_bytes + 1):
-            envelope.append(sustain_level)
+            yield sustain_level
         # Release:
         for i in range(1, release_bytes + 1):
-            envelope.append(sustain_level - (i * release_step))
-
-        return itertools.islice(envelope, total_bytes)
+            yield sustain_level - (i * release_step)
 
     @staticmethod
     def flat_envelope_iterator(amplitude):
@@ -131,7 +128,7 @@ class Synthesizer:
         return self.pack_pcm_data(wave_generator=fm_gen, length=length)
 
     def fm_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
-        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        adsr_iterator = self.adsr_envelope(attack, decay, release, length, sustain_level=sustain)
         fm_gen = self.fm_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=fm_gen, length=length, envelope=adsr_iterator)
 
