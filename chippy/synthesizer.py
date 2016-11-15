@@ -157,7 +157,7 @@ class Synthesizer:
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
     def sine_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
-        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        adsr_iterator = self.adsr_envelope(attack, decay, release, length, sustain_level=sustain)
         gen = self.sine_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
@@ -166,7 +166,7 @@ class Synthesizer:
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
     def triangle_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
-        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        adsr_iterator = self.adsr_envelope(attack, decay, release, length, sustain_level=sustain)
         gen = self.triangle_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
@@ -175,7 +175,7 @@ class Synthesizer:
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
     def saw_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
-        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        adsr_iterator = self.adsr_envelope(attack, decay, release, length, sustain_level=sustain)
         gen = self.sawtooth_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
@@ -184,7 +184,7 @@ class Synthesizer:
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
     def pulse_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
-        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        adsr_iterator = self.adsr_envelope(attack, decay, release, length, sustain_level=sustain)
         gen = self.pulse_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
