@@ -127,29 +127,49 @@ class Synthesizer:
     #######################################
 
     def fm_pcm(self, length=1.0, **kwargs):
-        fm_gen = self.fm_generator(**kwargs)
-        return self.pack_pcm_data(wave_generator=fm_gen, length=length)
+        gen = self.fm_generator(**kwargs)
+        return self.pack_pcm_data(wave_generator=gen, length=length)
 
     def fm_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
         adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
-        fm_gen = self.fm_generator(**kwargs)
-        return self.pack_pcm_data(wave_generator=fm_gen, length=length, envelope=adsr_iterator)
+        gen = self.fm_generator(**kwargs)
+        return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
     def sine_pcm(self, length=1.0, **kwargs):
         wave_gen = self.sine_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
+    def sine_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        gen = self.sine_generator(**kwargs)
+        return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
+
     def triangle_pcm(self, length=1.0, **kwargs):
         wave_gen = self.triangle_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
+
+    def triangle_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        gen = self.triangle_generator(**kwargs)
+        return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
     def saw_pcm(self, length=1.0, **kwargs):
         wave_gen = self.sawtooth_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
 
+    def saw_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        gen = self.sawtooth_generator(**kwargs)
+        return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
+
     def pulse_pcm(self, length=1.0, **kwargs):
         wave_gen = self.pulse_generator(**kwargs)
         return self.pack_pcm_data(wave_generator=wave_gen, length=length)
+
+    def pulse_pcm_adsr(self, length=1.0, attack=0.05, decay=0.1, release=0.3, sustain=0.5, **kwargs):
+        adsr_iterator = self.adsr_envelope_iterator(attack, decay, release, length, sustain_level=sustain)
+        gen = self.pulse_generator(**kwargs)
+        return self.pack_pcm_data(wave_generator=gen, length=length, envelope=adsr_iterator)
 
     def noise_pcm(self, length=1.0, **kwargs):
         wave_gen = self.noise_generator(**kwargs)
