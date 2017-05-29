@@ -38,10 +38,9 @@ class Synthesizer:
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def sawtooth_generator(self, frequency=440.0):
-        period = int(self.framerate / frequency)
-        lookup_table = [(frequency * (i % period / self.framerate) * 2 - 1)
-                        for i in range(period)]
-        return (lookup_table[i % period] for i in itertools.count(0))
+        period_length = int(self.framerate / frequency)
+        one_period = [(frequency * (i / self.framerate) * 2 - 1) for i in range(period_length)]
+        return itertools.cycle(one_period)
 
     def pulse_generator(self, frequency=440.0, duty_cycle=50):
         period = int(self.framerate / frequency)
