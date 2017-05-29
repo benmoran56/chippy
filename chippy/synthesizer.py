@@ -43,11 +43,10 @@ class Synthesizer:
         return itertools.cycle(one_period)
 
     def pulse_generator(self, frequency=440.0, duty_cycle=50):
-        period = int(self.framerate / frequency)
-        duty_cycle = int(duty_cycle * period / 100)
-        lookup_table = [(int(i < duty_cycle) * 2 - 1)
-                        for i in range(period)]
-        return (lookup_table[i % period] for i in itertools.count(0))
+        period_length = int(self.framerate / frequency)
+        duty_cycle = int(duty_cycle * period_length / 100)
+        one_period = [(int(i < duty_cycle) * 2 - 1) for i in range(period_length)]
+        return itertools.cycle(one_period)
 
     def noise_generator(self, frequency=10.0):
         period = int(self.framerate / frequency)
