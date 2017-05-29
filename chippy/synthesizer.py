@@ -30,12 +30,12 @@ class Synthesizer:
         return itertools.cycle(one_period)
 
     def triangle_generator(self, frequency=440.0):
-        period = int(self.framerate / frequency)
-        half_period = period / 2
+        period_length = int(self.framerate / frequency)
+        half_period = period_length / 2
         # TODO: fix this really hacky lookup table. The +0.02 is bad. Fix it.
-        lookup_table = [1 / half_period * (half_period - abs(i % period - half_period) * 2 - 1) + 0.02
-                        for i in range(period)]
-        return (lookup_table[i % period] for i in itertools.count(0))
+        one_period = [1 / half_period * (half_period - abs(i - half_period) * 2 - 1) + 0.02
+                      for i in range(period_length)]
+        return itertools.cycle(one_period)
 
     def sawtooth_generator(self, frequency=440.0):
         period_length = int(self.framerate / frequency)
