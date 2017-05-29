@@ -23,10 +23,11 @@ class Synthesizer:
         return (lookup_table[i % period] for i in itertools.count(0))
 
     def sine_generator(self, frequency=440.0):
-        period = int(self.framerate / frequency)
-        lookup_table = [sin(2 * pi * frequency * (i % period / self.framerate))
-                        for i in range(period)]
-        return (lookup_table[i % period] for i in itertools.count(0))
+        framerate = self.framerate
+        period_length = int(framerate / frequency)
+        step = 2 * pi * frequency
+        one_period = [sin(step * i / framerate) for i in range(period_length)]
+        return itertools.cycle(one_period)
 
     def triangle_generator(self, frequency=440.0):
         period = int(self.framerate / frequency)
