@@ -1,9 +1,11 @@
 from collections import namedtuple
 
 
-class MMLParser(object):
+Note = namedtuple("Note", ['frequency', 'length', 'volume'])
 
-    Note = namedtuple("Note", ['frequency', 'length', 'volume'])
+
+
+class MMLParser(object):
 
     notes = {"C": 261.63, "C#": 277.183,
              "D": 293.66, "D#": 311.127,
@@ -20,7 +22,11 @@ class MMLParser(object):
                     4: 1,
                     5: 2,
                     6: 4,
-                    7: 8}
+                    7: 8,
+                    8: 16,
+                    9: 32,
+                    10: 64,
+                    11: 128}
 
     def __init__(self, tempo=120, octave=4, length=4, volume=10):
         self.tempo = tempo              # Tempo scale of 1 to 255
@@ -33,12 +39,14 @@ class MMLParser(object):
         self.mml_composer = None
         self.mml_programmer = None
 
-        self.current_channel = None
-        self.channel_a_queue = []
-        self.channel_b_queue = []
-        self.channel_c_queue = []
-        self.channel_d_queue = []
-        self.channel_e_queue = []
+        self.channel_queue = {'a': [],
+                              'b': [],
+                              'c': [],
+                              'd': [],
+                              'e': []}
+
+        self.current_channel = 'a'
+
         self.macros = {}
 
     def load_from_file(self, file_name):
@@ -74,17 +82,17 @@ class MMLParser(object):
         if line.startswith("#"):
             return
         elif line.startswith("A "):
-            self.current_channel = self.channel_a_queue
+            self.current_channel = 'a'
         elif line.startswith("B "):
-            self.current_channel = self.channel_b_queue
+            self.current_channel = 'b'
         elif line.startswith("C "):
-            self.current_channel = self.channel_c_queue
+            self.current_channel = 'c'
         elif line.startswith("D "):
-            self.current_channel = self.channel_d_queue
+            self.current_channel = 'd'
         elif line.startswith("E "):
-            self.current_channel = self.channel_e_queue
+            self.current_channel = 'e'
         else:
-            self.current_channel = self.channel_a_queue
+            self.current_channel = 'a'
 
     def _parse_line(self, line):
         self._set_channel(line)
@@ -97,8 +105,8 @@ class MMLParser(object):
             elif character in self.notes.keys():
                 freq = self.notes[character] * self.octave_chart[self.octave]
                 leng = 60 / self.tempo
-                note = self.Note(frequency=freq, length=leng, volume=self.volume)
-                self.current_channel.append(note)
+                note = Note(frequency=freq, length=leng, volume=self.volume)
+                self.channel_queue[self.current_channel].append(note)
         self.octave = 4
 
     def parse_mml(self):
