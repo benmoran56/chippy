@@ -1,8 +1,8 @@
-from collections import namedtuple
+import re
+import collections
 
 
-Note = namedtuple("Note", ['frequency', 'length', 'volume'])
-
+Note = collections.namedtuple("Note", ['frequency', 'length', 'volume'])
 
 
 class MMLParser(object):
@@ -34,7 +34,8 @@ class MMLParser(object):
         self.reverse_octave = False     # Reverses operation of < and >
         self.length = length            # From 1 to 9999
         self.volume = volume            # Volume scale of 0 to 15
-        self.raw_mml_data = []
+        self.raw_mml_data = ""
+
         self.mml_title = None
         self.mml_composer = None
         self.mml_programmer = None
@@ -49,34 +50,27 @@ class MMLParser(object):
 
         self.macros = {}
 
+        token_specification = [('TITLE',        r"(?:#TITLE (.*))"),
+                               ('COMPOSER',     r"(?:#COMPOSER (.*))"),
+                               ('PROGRAMMER',   r"(?:#PROGRAM{1,2}ER (.*))"),
+                               ('TEMPO',        r"([Tt]+\d{3})"),
+                               ('NOTE',         r"([cdefgab]\+?-?\d?)"),
+                               ('CHANNEL',      r"([ABCDEFG])"),
+                               ('OCTAVEUP',     r"(>)"),
+                               ('OCTAVEDOWN',   r"(<)"),
+                               ('REST',         r"([\.rp])"),
+                               ('LENGTH',       r"(l+\d{1,2})")]
+
+        self.token_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
+
     def load_from_file(self, file_name):
         """Load a text file containing valid MML."""
         with open(file_name) as f:
-            for line in f.readlines():
-                self.raw_mml_data.append(line.strip().upper())
-        self._parse_header()
+            self.raw_mml_data = f.read()
 
     def load_from_string(self, string):
         """Load a string containing MML data."""
-        for line in string.splitlines():
-            self.raw_mml_data.append(line.strip().upper())
-        self._parse_header()
-
-    def _parse_header(self):
-        for line in self.raw_mml_data:
-            if line.startswith("#INCLUDE"):
-                # TODO: implement this.
-                pass
-            elif line.startswith("#TITLE"):
-                self.mml_title = line[6:].strip()
-            elif line.startswith("#COMPOSER"):
-                self.mml_composer = line[9:].strip()
-            elif line.startswith("#PROGRAMER"):
-                self.mml_programmer = line[10:].strip()
-            elif line.startswith("#PROGRAMMER"):
-                self.mml_programmer = line[11:].strip()
-            elif line.startswith("#OCTAVE-REV"):
-                self.reverse_octave = True
+        self.raw_mml_data = string
 
     def _set_channel(self, line):
         if line.startswith("#"):
@@ -94,21 +88,14 @@ class MMLParser(object):
         else:
             self.current_channel = 'a'
 
-    def _parse_line(self, line):
-        self._set_channel(line)
-        for character in line:
-            if character == "<":
-                self.octave -= 1
-            elif character == ">":
-                self.octave += 1
-
-            elif character in self.notes.keys():
-                freq = self.notes[character] * self.octave_chart[self.octave]
-                leng = 60 / self.tempo
-                note = Note(frequency=freq, length=leng, volume=self.volume)
-                self.channel_queue[self.current_channel].append(note)
-        self.octave = 4
-
     def parse_mml(self):
-        for line in self.raw_mml_data:
-            self._parse_line(line)
+
+        for mo in re.finditer(self.token_regex, self.raw_mml_data):
+
+            kind = mo.lastgroup
+            value = mo.group()
+
+            if kind == 'TITLE':
+                self.mml_title = value
+
+            print(kind, value)
