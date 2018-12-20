@@ -53,13 +53,17 @@ class MMLParser(object):
         token_specification = [('TITLE',        r"(?:#TITLE (.*))"),
                                ('COMPOSER',     r"(?:#COMPOSER (.*))"),
                                ('PROGRAMMER',   r"(?:#PROGRAM{1,2}ER (.*))"),
-                               ('TEMPO',        r"([Tt]+\d{3})"),
-                               ('NOTE',         r"([cdefgab]\+?-?\d?)"),
+
+                               ('SPACE',        r"( )"),
+                               ('NEWLINE',      r"(\r\n|\r|\n)"),
                                ('CHANNEL',      r"([ABCDEFG])"),
+                               ('TEMPO',        r"([Tt]+\d{3})"),
                                ('OCTAVEUP',     r"(>)"),
                                ('OCTAVEDOWN',   r"(<)"),
-                               ('REST',         r"([\.rp])"),
-                               ('LENGTH',       r"(l+\d{1,2})")]
+
+                               ('LENGTH',       r"(l+\d{1,2})"),
+                               ('NOTE',         r"([cdefgab]\+?-?\d?)"),
+                               ('REST',         r"([\.rp])")]
 
         self.token_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
 
@@ -72,22 +76,6 @@ class MMLParser(object):
         """Load a string containing MML data."""
         self.raw_mml_data = string
 
-    def _set_channel(self, line):
-        if line.startswith("#"):
-            return
-        elif line.startswith("A "):
-            self.current_channel = 'a'
-        elif line.startswith("B "):
-            self.current_channel = 'b'
-        elif line.startswith("C "):
-            self.current_channel = 'c'
-        elif line.startswith("D "):
-            self.current_channel = 'd'
-        elif line.startswith("E "):
-            self.current_channel = 'e'
-        else:
-            self.current_channel = 'a'
-
     def parse_mml(self):
 
         for mo in re.finditer(self.token_regex, self.raw_mml_data):
@@ -97,5 +85,23 @@ class MMLParser(object):
 
             if kind == 'TITLE':
                 self.mml_title = value
+            elif kind == 'COMPOSER':
+                self.mml_composer = value
+            elif kind == 'PROGRAMMER':
+                self.mml_programmer = value
 
-            print(kind, value)
+            elif kind == 'CHANNEL':
+                self.current_channel = value
+            elif kind == 'TEMPO':
+                self.tempo = value
+            elif kind == 'OCTAVEUP':
+                self.octave += 1
+            elif kind == 'OCTAVEDOWN':
+                self.octave -= 1
+
+            if kind == 'NOTE':
+                val, *shift = value
+                print(self.notes[val.upper()])
+
+            # if kind not in ('SPACE', 'NEWLINE'):
+            #    print(kind, value)
