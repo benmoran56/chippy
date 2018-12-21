@@ -13,7 +13,8 @@ class MMLParser(object):
              "F": 349.23, "F#": 369.994,
              "G": 392.00, "G#": 415.305,
              "A": 440.00, "A#": 466.164,
-             "B": 493.88, "R": 0}
+             "B": 493.88, "R": 0.01,
+                          "P": 0.01}
 
     octave_chart = {0: 0.06,
                     1: 0.12,
@@ -55,12 +56,11 @@ class MMLParser(object):
                                ('NEWLINE',      r"(\r\n|\r|\n)"),
                                ('CHANNEL',      r"([ABCDEFG]+\s)"),
                                ('TEMPO',        r"(?<=[Tt])+\d{3}"),
-                               ('OCTAVEDOWN',   r"(>)"),
-                               ('OCTAVEUP',     r"(<)"),
+                               ('OCTAVEUP',     r"(>)"),
+                               ('OCTAVEDOWN',   r"(<)"),
 
                                ('LENGTH',       r"(?<=[Ll])+\d{1,2}"),
-                               ('NOTE',         r"([cdefgab]\+?-?\d?)"),
-                               ('REST',         r"([\.rp])")]
+                               ('NOTE',         r"([cdefgabrp]\+?-?\d?)")]
 
         self.token_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
 
@@ -100,7 +100,11 @@ class MMLParser(object):
 
             elif kind == 'NOTE':
                 value, *therest = value
-                yield self.notes[value.upper()] * self.octave, self.length
+
+                # TODO: fix this
+                length = 60 / self.tempo * self.octave_chart[self.octave]
+
+                yield self.notes[value.upper()], length
 
             # if kind not in ('SPACE', 'NEWLINE'):
             #    print(kind, value)
