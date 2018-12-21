@@ -23,10 +23,7 @@ class MMLParser(object):
                     5: 2,
                     6: 4,
                     7: 8,
-                    8: 16,
-                    9: 32,
-                    10: 64,
-                    11: 128}
+                    8: 16}
 
     def __init__(self, tempo=120, octave=4, length=4, volume=10):
         self.tempo = tempo              # Tempo scale of 1 to 255
@@ -50,18 +47,18 @@ class MMLParser(object):
 
         self.macros = {}
 
-        token_specification = [('TITLE',        r"(?:#TITLE (.*))"),
-                               ('COMPOSER',     r"(?:#COMPOSER (.*))"),
-                               ('PROGRAMMER',   r"(?:#PROGRAM{1,2}ER (.*))"),
+        token_specification = [('TITLE',        r"(?<=#TITLE ).*"),
+                               ('COMPOSER',     r"(?<=#COMPOSER ).*"),
+                               ('PROGRAMMER',   r"(?<=#PROGRA[MM{2}]ER ).*"),
 
                                ('SPACE',        r"( )"),
                                ('NEWLINE',      r"(\r\n|\r|\n)"),
-                               ('CHANNEL',      r"([ABCDEFG])"),
-                               ('TEMPO',        r"([Tt]+\d{3})"),
-                               ('OCTAVEUP',     r"(>)"),
-                               ('OCTAVEDOWN',   r"(<)"),
+                               ('CHANNEL',      r"([ABCDEFG]+\s)"),
+                               ('TEMPO',        r"(?<=[Tt])+\d{3}"),
+                               ('OCTAVEDOWN',   r"(>)"),
+                               ('OCTAVEUP',     r"(<)"),
 
-                               ('LENGTH',       r"(l+\d{1,2})"),
+                               ('LENGTH',       r"(?<=[Ll])+\d{1,2}"),
                                ('NOTE',         r"([cdefgab]\+?-?\d?)"),
                                ('REST',         r"([\.rp])")]
 
@@ -93,15 +90,17 @@ class MMLParser(object):
             elif kind == 'CHANNEL':
                 self.current_channel = value
             elif kind == 'TEMPO':
-                self.tempo = value
+                self.tempo = int(value)
             elif kind == 'OCTAVEUP':
                 self.octave += 1
             elif kind == 'OCTAVEDOWN':
                 self.octave -= 1
+            elif kind == 'LENGTH':
+                self.length = int(value)
 
-            if kind == 'NOTE':
-                val, *shift = value
-                print(self.notes[val.upper()])
+            elif kind == 'NOTE':
+                value, *therest = value
+                yield self.notes[value.upper()] * self.octave, self.length
 
             # if kind not in ('SPACE', 'NEWLINE'):
             #    print(kind, value)
