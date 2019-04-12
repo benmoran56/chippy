@@ -1,9 +1,11 @@
-from collections import namedtuple
+import re
+import collections
+
+
+Note = collections.namedtuple("Note", ['frequency', 'length', 'volume'])
 
 
 class MMLParser(object):
-
-    Note = namedtuple("Note", ['frequency', 'length', 'volume'])
 
     notes = {"C": 261.63, "C#": 277.183,
              "D": 293.66, "D#": 311.127,
@@ -11,7 +13,8 @@ class MMLParser(object):
              "F": 349.23, "F#": 369.994,
              "G": 392.00, "G#": 415.305,
              "A": 440.00, "A#": 466.164,
-             "B": 493.88, "R": 0}
+             "B": 493.88, "R": 0.01,
+                          "P": 0.01}
 
     octave_chart = {0: 0.06,
                     1: 0.12,
@@ -20,7 +23,8 @@ class MMLParser(object):
                     4: 1,
                     5: 2,
                     6: 4,
-                    7: 8}
+                    7: 8,
+                    8: 16}
 
     def __init__(self, tempo=120, octave=4, length=4, volume=10):
         self.tempo = tempo              # Tempo scale of 1 to 255
@@ -28,79 +32,79 @@ class MMLParser(object):
         self.reverse_octave = False     # Reverses operation of < and >
         self.length = length            # From 1 to 9999
         self.volume = volume            # Volume scale of 0 to 15
-        self.raw_mml_data = []
+        self.raw_mml_data = ""
+
         self.mml_title = None
         self.mml_composer = None
         self.mml_programmer = None
 
-        self.current_channel = None
-        self.channel_a_queue = []
-        self.channel_b_queue = []
-        self.channel_c_queue = []
-        self.channel_d_queue = []
-        self.channel_e_queue = []
+        self.channel_queue = {'a': [],
+                              'b': [],
+                              'c': [],
+                              'd': [],
+                              'e': []}
+
+        self.current_channel = 'a'
+
         self.macros = {}
+
+        token_specification = [('TITLE',        r"(?<=#TITLE ).*"),
+                               ('COMPOSER',     r"(?<=#COMPOSER ).*"),
+                               ('PROGRAMMER',   r"(?<=#PROGRA[MM{2}]ER ).*"),
+
+                               ('SPACE',        r"( )"),
+                               ('NEWLINE',      r"(\r\n|\r|\n)"),
+                               ('CHANNEL',      r"([ABCDEFG]+\s)"),
+                               ('TEMPO',        r"(?<=[Tt])+\d{3}"),
+                               ('OCTAVEUP',     r"(>)"),
+                               ('OCTAVEDOWN',   r"(<)"),
+
+                               ('LENGTH',       r"(?<=[Ll])+\d{1,2}"),
+                               ('NOTE',         r"([cdefgabrp]\+?-?\d?)")]
+
+        self.token_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
 
     def load_from_file(self, file_name):
         """Load a text file containing valid MML."""
         with open(file_name) as f:
-            for line in f.readlines():
-                self.raw_mml_data.append(line.strip().upper())
-        self._parse_header()
+            self.raw_mml_data = f.read()
 
     def load_from_string(self, string):
         """Load a string containing MML data."""
-        for line in string.splitlines():
-            self.raw_mml_data.append(line.strip().upper())
-        self._parse_header()
-
-    def _parse_header(self):
-        for line in self.raw_mml_data:
-            if line.startswith("#INCLUDE"):
-                # TODO: implement this.
-                pass
-            elif line.startswith("#TITLE"):
-                self.mml_title = line[6:].strip()
-            elif line.startswith("#COMPOSER"):
-                self.mml_composer = line[9:].strip()
-            elif line.startswith("#PROGRAMER"):
-                self.mml_programmer = line[10:].strip()
-            elif line.startswith("#PROGRAMMER"):
-                self.mml_programmer = line[11:].strip()
-            elif line.startswith("#OCTAVE-REV"):
-                self.reverse_octave = True
-
-    def _set_channel(self, line):
-        if line.startswith("#"):
-            return
-        elif line.startswith("A "):
-            self.current_channel = self.channel_a_queue
-        elif line.startswith("B "):
-            self.current_channel = self.channel_b_queue
-        elif line.startswith("C "):
-            self.current_channel = self.channel_c_queue
-        elif line.startswith("D "):
-            self.current_channel = self.channel_d_queue
-        elif line.startswith("E "):
-            self.current_channel = self.channel_e_queue
-        else:
-            self.current_channel = self.channel_a_queue
-
-    def _parse_line(self, line):
-        self._set_channel(line)
-        for character in line:
-            if character == "<":
-                self.octave -= 1
-            elif character == ">":
-                self.octave += 1
-
-            elif character in self.notes.keys():
-                freq = self.notes[character] * self.octave_chart[self.octave]
-                leng = 60 / self.tempo
-                note = self.Note(frequency=freq, length=leng, volume=self.volume)
-                self.current_channel.append(note)
-        self.octave = 4
+        self.raw_mml_data = string
 
     def parse_mml(self):
-        for line in self.raw_mml_data:
-            self._parse_line(line)
+
+        for mo in re.finditer(self.token_regex, self.raw_mml_data):
+
+            kind = mo.lastgroup
+            value = mo.group()
+
+            if kind == 'TITLE':
+                self.mml_title = value
+            elif kind == 'COMPOSER':
+                self.mml_composer = value
+            elif kind == 'PROGRAMMER':
+                self.mml_programmer = value
+
+            elif kind == 'CHANNEL':
+                self.current_channel = value
+            elif kind == 'TEMPO':
+                self.tempo = int(value)
+            elif kind == 'OCTAVEUP':
+                self.octave += 1
+            elif kind == 'OCTAVEDOWN':
+                self.octave -= 1
+            elif kind == 'LENGTH':
+                self.length = int(value)
+
+            elif kind == 'NOTE':
+                value, *therest = value
+
+                # TODO: fix this
+                length = 60 / self.tempo * self.octave_chart[self.octave]
+
+                yield self.notes[value.upper()], length
+
+            # if kind not in ('SPACE', 'NEWLINE'):
+            #    print(kind, value)
