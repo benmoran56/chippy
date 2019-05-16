@@ -2,10 +2,10 @@ Chippy
 ======
 **Chippy is a module for creating simple "chiptune" style audio waveforms**
 
-Chippy is a pure Python module for creating various types of basic waveforms,
+Chippy is a pure Python 3 module for creating various types of basic waveforms,
 such as Sine, Triangle, Saw, Square/Pulse, etc. It also does simple FM synthesis.
 Under the hood are Python generators for each of these waveforms, which can give
-you an endless stream of signed integers representing the waves. There are also
+you an endless stream of signed integers representing the wave data. There are also
 methods that will return a specific length of PCM data, with or without a standard
 RIFF header. Use it directly in your application, or save the waveforms to disk.
 
@@ -67,9 +67,9 @@ The Square/Pulse wave has a duty cycle parameter, which is set as a percentage o
 
 
 In addition to the methods above which return bytes of wave data, there are also generators
-available that will return infinite streams of wave representation data on a scale of -1.0 and 1.0.
-I'll try to add more documentation at some point that covers this, but if you have a use for it you
-probably already know what to do. Just make an instance of the generator and pull from it::
+available that will return infinite streams of wave representation data on a scale of -1.0 to 1.0.
+This can be useful if you want to generate wave data in your own application. Simply create an
+instance of the generator and pull from it::
 
 
     sine_generator = synth.sine_generator(frequency=220, amplitude=0.3)
