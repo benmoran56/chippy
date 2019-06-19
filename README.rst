@@ -1,3 +1,7 @@
+.. image:: https://readthedocs.org/projects/chippy/badge/?version=latest
+:target: https://chippy.readthedocs.io/?badge=latest
+
+
 Chippy
 ======
 **Chippy is a module for creating simple "chiptune" style audio waveforms**
@@ -11,7 +15,9 @@ RIFF header. Use it directly in your application, or save the waveforms to disk.
 
 Chippy is not, however, an audio player. It simply creates the waveforms.
 
-Inspired by Zach Denton's **Wavebender** http://github.com/zacharydenton/wavebender
+API documentation is hosted at ReadTheDocs: https://chippy.readthedocs.io/
+
+Inspired by Zach Denton's **Wavebender**: http://github.com/zacharydenton/wavebender
 
 What's New
 ----------
